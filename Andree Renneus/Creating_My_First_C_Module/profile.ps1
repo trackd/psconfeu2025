@@ -89,12 +89,12 @@ class CommandInfoCompleterAttribute : ArgumentCompleter, IArgumentCompleter, IAr
         }
 
         $filter = [CommandTypes]::All
-        if ($commandName -in 'Edit-VSCode','ev') {
+        if ($commandName -in 'Edit-VSCode', 'ev') {
             # we cannot edit Applications or Cmdlets
             $filter = $filter -bxor [CommandTypes]'Application,Cmdlet' # 343
         }
 
-        elseif ($commandName -in 'Get-CommandParameter','gcp','Resolve-Command','rc') {
+        elseif ($commandName -in 'Get-CommandParameter', 'gcp', 'Resolve-Command', 'rc') {
             # we cannot get parameters for Applications.
             $filter = $filter -bxor [CommandTypes]::Application # 351
         }
@@ -129,7 +129,6 @@ function Resolve-Command {
         [CommandInfo] $Command
     )
     begin {
-        $width = $host.UI.RawUI.WindowSize.Width - 15
         $isLast = $MyInvocation.PipelinePosition -eq $MyInvocation.PipelineLength
         $bat = $ExecutionContext.InvokeCommand.GetCommand('bat', 'Application')
         $batPS = @(
@@ -172,68 +171,34 @@ function Resolve-Command {
                 }
             }
             Write-Warning 'This command is a cmdlet, you need ilspy/dnspy or something similar to decompile the code, output is a proxyfunction'
-            try {
-                $outProxy = @(
-                    if ($isLast) {
-                        if ($PSStyle -and ($oldOutputRendering = $PSStyle.OutputRendering) -ne 'ansi') {
-                            $PSStyle.OutputRendering = 'ansi'
-                        }
-                        '<#'
-                        'File: {0}' -f $Command.DLL
-                        'Parameters:'
-                        if ($PSEdition -eq 'Desktop') {
-                            ([System.Management.Automation.CommandMetadata]$Command).Parameters.Get_Keys()
-                        }
-                        else {
-                            ($Command | Get-CommandParameter | Out-String -Width $width)
-                        }
-                        '#>'
-                    }
-                    'function {0} {1}' -f $Command.Name, '{'
-                    [System.Management.Automation.ProxyCommand]::Create($Command)
-                    '}'
-                )
-                if (-not $bat) {
-                    return $outProxy
+            $outProxy = @(
+                if ($isLast) {
+                    '<#'
+                    'File: {0}' -f $Command.DLL
+                    '#>'
                 }
-                $outProxy | & $bat $batPS
+                'function {0} {1}' -f $Command.Name, '{'
+                [System.Management.Automation.ProxyCommand]::Create($Command)
+                '}'
+            )
+            if (-not $bat) {
+                return $outProxy
             }
-            finally {
-                if ($oldOutputRendering) {
-                    $PSStyle.OutputRendering = $oldOutputRendering
-                }
-            }
+            $outProxy | & $bat $batPS
         }
         if ($Command.ScriptBlock.Ast) {
-            try {
-                $outPS = @(
-                    if ($isLast) {
-                        if ($PSStyle -and ($oldOutputRendering = $PSStyle.OutputRendering) -ne 'ansi') {
-                            $PSStyle.OutputRendering = 'ansi'
-                        }
-                        '<#'
-                        'File: {0}' -f $Command.ScriptBlock.File
-                        'Parameters:'
-                        if ($PSEdition -eq 'Desktop') {
-                            ([System.Management.Automation.CommandMetadata]$Command).Parameters.Get_Keys()
-                        }
-                        else {
-                            ($Command | Get-CommandParameter | Out-String -Width $width)
-                        }
-                        '#>'
-                    }
-                    $Command.ScriptBlock.Ast.Extent.Text
-                )
-                if (-not $bat) {
-                    return $outPS
+            $outPS = @(
+                if ($isLast) {
+                    '<#'
+                    'File: {0}' -f $Command.ScriptBlock.File
+                    '#>'
                 }
-                $outPS | & $bat $batPS
+                $Command.ScriptBlock.Ast.Extent.Text
+            )
+            if (-not $bat) {
+                return $outPS
             }
-            finally {
-                if ($oldOutputRendering) {
-                    $PSStyle.OutputRendering = $oldOutputRendering
-                }
-            }
+            $outPS | & $bat $batPS
         }
     }
 }
@@ -315,7 +280,7 @@ function Edit-VSCode {
         # Wait            = $true
         # PassThru        = $true
     }
-    $proc = Start-Process @procParams
+    $null = Start-Process @procParams
 }
 function Expand-MemberInfo {
     <#
@@ -533,7 +498,7 @@ function Expand-MemberInfo {
 function cs {
     param()
     end {
-        $input | bat -l cs --style grid,numbers,snip
+        $input | bat -l cs --style grid, numbers, snip
     }
 }
 function ps1 {
